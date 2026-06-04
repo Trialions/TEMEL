@@ -307,23 +307,7 @@ def on_candle(self, symbol: str, candle: dict):
     # ──────────────────────────────────────────────────────────────
     # Ana İşlem Akışı
     # ──────────────────────────────────────────────────────────────
-def _process(self, symbol: str, price: float):
-    prices  = list(self.close_series.get(symbol, []))
-    highs   = list(self.high_series.get(symbol, []))
-    lows    = list(self.low_series.get(symbol, []))
-    volumes = list(self.vol_series.get(symbol, []))
 
-    if len(prices) < 50:
-        return
-
-    news_score = get_sentiment_score()
-    result     = score_symbol(prices, highs, lows, volumes, news_score)
-    score      = result["final_score"]
-
-    if symbol in self.open_positions:
-        self._manage(symbol, price, score)
-    else:
-        self._try_open(symbol, price, score, prices, volumes, result)
 
     # ── Pozisyon Yönetimi ─────────────────────────────────────────
     def _manage(self, symbol: str, price: float, score: float):
