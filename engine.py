@@ -163,21 +163,43 @@ class TradeEngine:
             if candles:
                 self.last_close_time[symbol] = int(candles[-1].get("close_time", 0))
 
-    def on_candle(self, symbol: str, candle: dict):
-        with self.lock:
-            if self._stopped:
-                return
-            self._reset_daily_if_needed()
-            price  = float(candle.get("close",  0))
-            high   = float(candle.get("high",   0))
-            low    = float(candle.get("low",    0))
-            volume = float(candle.get("volume", 0))
-            self.close_series.setdefault(symbol, deque(maxlen=2048)).append(price)
-            self.high_series.setdefault( symbol, deque(maxlen=2048)).append(high)
-            self.low_series.setdefault(  symbol, deque(maxlen=2048)).append(low)
-            self.vol_series.setdefault(  symbol, deque(maxlen=2048)).append(volume)
-            self.last_close_time[symbol] = int(candle.get("close_time", 0))
-            self._process(symbol, price)
+def on_candle(self, symbol: str, candle: dict):
+    with self.lock:
+        if self._stopped:
+            return
+        self._reset_daily_if_needed()
+        price  = float(candle.get("close",  0))
+        high   = float(candle.get("high",   0))
+        low    = float(candle.get("low",    0))
+        volume = float(candle.get("volume", 0))
+        self.close_series[symbol].append(price)
+        self.high_series[symbol].append(high)
+        self.low_series[symbol].append(low)
+        self.vol_series[symbol].append(volume)
+        self.last_close_time[symbol] = int(candle.get("close_time", 0))
+        # Anlık snapshot — lock serbest bırakılmadan önce kopyala
+        prices  = list(self.close_series[symbol])
+        highs   = list(self.high_series[symbol])
+        lows    = list(self.low_series[symbol])
+        volumes = list(self.vol_series[symbol])
+        in_pos  = symbol in self.open_positions
+
+    # ── Lock DIŞINDA CPU-yoğun hesaplama ─────────────────
+    if len(prices) < 50:
+        return
+
+    news_score = get_sentiment_score()
+    result     = score_symbol(prices, highs, lows, volumes, news_score)
+    score      = result["final_score"]
+
+    # ── Sonuçla birlikte tekrar lock al ──────────────────
+    with self.lock:
+        if self._stopped:
+            return
+        if in_pos:
+            self._manage(symbol, price, score)
+        else:
+            self._try_open(symbol, price, score, prices, volumes, result)
 
     # ──────────────────────────────────────────────────────────────
     # Veri Besleme — HTF
@@ -285,22 +307,23 @@ class TradeEngine:
     # ──────────────────────────────────────────────────────────────
     # Ana İşlem Akışı
     # ──────────────────────────────────────────────────────────────
-    def _process(self, symbol: str, price: float):
-        prices  = list(self.close_series.get(symbol, []))
-        highs   = list(self.high_series.get(symbol,  []))
-        lows    = list(self.low_series.get(symbol,   []))
-        volumes = list(self.vol_series.get(symbol,   []))
-        if len(prices) < 50:
-            return
+def _process(self, symbol: str, price: float):
+    prices  = list(self.close_series.get(symbol, []))
+    highs   = list(self.high_series.get(symbol, []))
+    lows    = list(self.low_series.get(symbol, []))
+    volumes = list(self.vol_series.get(symbol, []))
 
-        news_score = get_sentiment_score()
-        result     = score_symbol(prices, highs, lows, volumes, news_score)
-        score      = result["final_score"]
+    if len(prices) < 50:
+        return
 
-        if symbol in self.open_positions:
-            self._manage(symbol, price, score)
-        else:
-            self._try_open(symbol, price, score, prices, volumes, result)
+    news_score = get_sentiment_score()
+    result     = score_symbol(prices, highs, lows, volumes, news_score)
+    score      = result["final_score"]
+
+    if symbol in self.open_positions:
+        self._manage(symbol, price, score)
+    else:
+        self._try_open(symbol, price, score, prices, volumes, result)
 
     # ── Pozisyon Yönetimi ─────────────────────────────────────────
     def _manage(self, symbol: str, price: float, score: float):
