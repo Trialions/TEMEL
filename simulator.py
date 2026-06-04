@@ -186,11 +186,12 @@ def start_realtime(log_callback):
 
     mode          = cfg.get("mode", {})
     mtf           = cfg.get("mtf",  {})
-    _INTERVAL     = mode.get("interval",    "5m")
+    _INTERVAL     = mode.get("interval", "5m")
     _INTERVAL_HTF = mtf.get("htf_interval", "1h")
     _SHARD        = int(mode.get("shard_size", 20))
+    _PRELOAD      = int(mode.get("preload_candles", 1000))
+    _PRELOAD_HTF  = int(mtf.get("preload_candles_htf", 500))
     _SYMS         = _load_symbols(limit=int(mode.get("top_n", 20)))
-
     shards = max(1, (len(_SYMS) + _SHARD - 1) // _SHARD)
     _STATUS.update({"universe": len(_SYMS), "shards": shards, "preload": False})
 
