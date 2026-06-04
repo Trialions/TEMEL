@@ -1,0 +1,2 @@
+# TEMEL
+Kripto Trade Projesi
