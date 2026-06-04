@@ -68,11 +68,16 @@ def _macd(prices: np.ndarray,
             df = ta.macd(pd.Series(prices, dtype=float),
                          fast=fast, slow=slow, signal=sig)
             if df is not None and len(df.columns) >= 3:
-                ml   = _col(df, "MACD_",  0)   # MACD line  (col 0)
-                hist = _col(df, "MACDh_", 1)   # histogram  (col 1)
-                sl_  = _col(df, "MACDs_", 2)   # signal     (col 2)
-                if not any(np.isnan(v) for v in (ml, hist, sl_)):
-                    return ml, sl_, hist
+                # Sütun adlarını keyword ile kesin eşleştir
+                macd_cols  = [c for c in df.columns if "MACD_"  in c and "MACDh_" not in c and "MACDs_" not in c]
+                hist_cols  = [c for c in df.columns if "MACDh_" in c]
+                sig_cols   = [c for c in df.columns if "MACDs_" in c]
+                if macd_cols and hist_cols and sig_cols:
+                    ml   = float(df[macd_cols[0]].iloc[-1])
+                    hist = float(df[hist_cols[0]].iloc[-1])
+                    sl_  = float(df[sig_cols[0]].iloc[-1])
+                    if not any(np.isnan(v) for v in (ml, hist, sl_)):
+                        return ml, sl_, hist
         except Exception:
             pass
     s   = pd.Series(prices, dtype=float)
