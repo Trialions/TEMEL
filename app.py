@@ -91,7 +91,7 @@ def _make_bt_dir(params: dict) -> str:
             "htf_long_min":           mtf.get("htf_long_min",      55.0),
             "htf_short_max":          mtf.get("htf_short_max",     45.0),
             "htf_interval":           mtf.get("htf_interval",      "1h"),
-            "risk_per_trade_pct":     risk.get("risk_per_trade_pct", 1.0)
+            "risk_per_trade_pct":     risk.get("risk_per_trade_pct", 1.0),
             "min_hold_minutes":       risk.get("min_hold_minutes",   30),
         }
         snap_path = os.path.join(path, "config_snapshot.json")
