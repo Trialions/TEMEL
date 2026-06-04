@@ -93,7 +93,7 @@ _INTERVAL_SECONDS = {
 
 def _sync_loop():
     """LTF senkronizasyonu — mum aralığına göre dinamik bekleme."""
-     while _started.is_set():
+    while _started.is_set():
         sleep_sec = _INTERVAL_SECONDS.get(_INTERVAL, 300)
         time.sleep(sleep_sec)
         try:
@@ -110,7 +110,7 @@ def _sync_loop():
 
 def _sync_htf_loop():
     """HTF (1h) senkronizasyonu — her 60 dakikada bir."""
-     while _started.is_set():
+    while _started.is_set():
         time.sleep(3600)
         try:
             if _ENGINE:
