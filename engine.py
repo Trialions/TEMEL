@@ -151,10 +151,10 @@ class TradeEngine:
     # ──────────────────────────────────────────────────────────────
     def seed_from_candles(self, symbol: str, candles: list):
         with self.lock:
-            pd = self.close_series.setdefault(symbol, deque(maxlen=2048))
-            hd = self.high_series.setdefault( symbol, deque(maxlen=2048))
-            ld = self.low_series.setdefault(  symbol, deque(maxlen=2048))
-            vd = self.vol_series.setdefault(  symbol, deque(maxlen=2048))
+            self.close_series[symbol].append(price)
+            self.high_series[symbol].append(high)
+            self.low_series[symbol].append(low)
+            self.vol_series[symbol].append(volume)
             for c in candles:
                 pd.append(float(c.get("close",  0)))
                 hd.append(float(c.get("high",   0)))
@@ -224,15 +224,10 @@ def on_candle(self, symbol: str, candle: dict):
         with self.lock:
             if self._stopped:
                 return
-            self.htf_close_series.setdefault(symbol, deque(maxlen=500)).append(
-                float(candle.get("close",  0)))
-            self.htf_high_series.setdefault( symbol, deque(maxlen=500)).append(
-                float(candle.get("high",   0)))
-            self.htf_low_series.setdefault(  symbol, deque(maxlen=500)).append(
-                float(candle.get("low",    0)))
-            self.htf_vol_series.setdefault(  symbol, deque(maxlen=500)).append(
-                float(candle.get("volume", 0)))
-            self.htf_last_time[symbol] = int(candle.get("close_time", 0))
+            self.htf_close_series[symbol].append(float(candle.get("close",  0)))
+            self.htf_high_series[symbol].append( float(candle.get("high",   0)))
+            self.htf_low_series[symbol].append(  float(candle.get("low",    0)))
+            self.htf_vol_series[symbol].append(  float(candle.get("volume", 0)))
 
     # ──────────────────────────────────────────────────────────────
     # Günlük Sıfırlama
