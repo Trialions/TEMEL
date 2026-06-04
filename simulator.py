@@ -27,7 +27,7 @@ _OPEN    : list        = []
 _PNL     : dict        = {"usd": 0.0, "pct": 0.0, "daily_usd": 0.0, "equity": 0.0}
 _ENGINE  : TradeEngine = None
 _FEED    : WSFeedKline = None
-_started : bool        = False
+_started : threading.Event = threading.Event()
 _SYMS    : List[str]   = []
 _INTERVAL    : str     = "5m"
 _INTERVAL_HTF: str     = "1h"
@@ -74,7 +74,7 @@ def _compute_top5() -> str:
 # ── Arka Plan Döngüleri ───────────────────────────────────────
 def _step_loop():
     global _OPEN, _PNL, _STATUS
-    while _started:
+    while _started.is_set():
         try:
             if _ENGINE:
                 _STATUS["top5"] = _compute_top5()
@@ -93,7 +93,7 @@ _INTERVAL_SECONDS = {
 
 def _sync_loop():
     """LTF senkronizasyonu — mum aralığına göre dinamik bekleme."""
-    while _started:
+     while _started.is_set():
         sleep_sec = _INTERVAL_SECONDS.get(_INTERVAL, 300)
         time.sleep(sleep_sec)
         try:
@@ -110,7 +110,7 @@ def _sync_loop():
 
 def _sync_htf_loop():
     """HTF (1h) senkronizasyonu — her 60 dakikada bir."""
-    while _started:
+     while _started.is_set():
         time.sleep(3600)
         try:
             if _ENGINE:
@@ -167,10 +167,10 @@ def get_coin_stats() -> list:
 
 # ── Başlat / Durdur ───────────────────────────────────────────
 def start_realtime(log_callback):
-    global _ENGINE, _FEED, _started, _SYMS
+    global _ENGINE, _FEED, _SYMS
     global _INTERVAL, _INTERVAL_HTF, _SHARD, _PRELOAD, _PRELOAD_HTF
 
-    if _started:
+    if _started.is_set():
         log_callback("[UYARI] Bot zaten çalışıyor.")
         return
 
@@ -192,6 +192,7 @@ def start_realtime(log_callback):
     _PRELOAD      = int(mode.get("preload_candles", 1000))
     _PRELOAD_HTF  = int(mtf.get("preload_candles_htf", 500))
     _SYMS         = _load_symbols(limit=int(mode.get("top_n", 20)))
+
     shards = max(1, (len(_SYMS) + _SHARD - 1) // _SHARD)
     _STATUS.update({"universe": len(_SYMS), "shards": shards, "preload": False})
 
@@ -235,8 +236,8 @@ def start_realtime(log_callback):
         on_connect=on_ws_connect, interval=_INTERVAL, shard_size=_SHARD
     )
     _FEED.start()
+    _started.set()
 
-    _started = True
     threading.Thread(target=_step_loop,     daemon=True).start()
     threading.Thread(target=_sync_loop,     daemon=True).start()
     threading.Thread(target=_sync_htf_loop, daemon=True).start()
@@ -246,14 +247,14 @@ def start_realtime(log_callback):
 
 
 def stop_realtime(log_callback=None):
-    global _started, _FEED, _ENGINE
+    global _FEED, _ENGINE
 
-    if not _started:
+    if not _started.is_set():
         if log_callback:
             log_callback("[UYARI] Bot zaten durdurulmuş.")
         return
 
-    _started = False
+    _started.clear()
 
     if _ENGINE:
         _ENGINE.stop()
@@ -265,8 +266,8 @@ def stop_realtime(log_callback=None):
         if log_callback:
             log_callback("[WebSocket] Bağlantı kapatıldı.")
 
-    _ENGINE = None   # ← EKLENDİ
-    _FEED   = None   # ← EKLENDİ
+    _ENGINE = None
+    _FEED   = None
 
     if log_callback:
         log_callback("[Simulator] Durduruldu.")
