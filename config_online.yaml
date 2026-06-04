@@ -2,11 +2,13 @@ mode:
   top_n: 20
   interval: 5m
   shard_size: 20
+  preload_candles: 1000
 mtf:
   enabled: true
   htf_interval: 1h
   htf_long_min: 55
   htf_short_max: 45
+  preload_candles_htf: 500
 risk:
   take_profit_min_pct: 3
   hard_stop_pct: 2
