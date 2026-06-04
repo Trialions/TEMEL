@@ -57,12 +57,13 @@ def _make_bt_dir(params: dict) -> str:
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
-        risk  = cfg.get("risk",       {})
-        thr   = cfg.get("thresholds", {})
-        m     = cfg.get("mode",       {})
-        btc_f = cfg.get("btc_filter",  {})
-        adx_f = cfg.get("adx_filter",  {})
-        ptp   = cfg.get("partial_tp",  {})
+            risk  = cfg.get("risk", {})
+            thr   = cfg.get("thresholds", {})
+            m     = cfg.get("mode", {})
+            btc_f = cfg.get("btc_filter", {})
+            adx_f = cfg.get("adx_filter", {})
+            ptp   = cfg.get("partial_tp", {})
+            mtf   = cfg.get("mtf", {})
         snap  = {
             "timestamp":            time.strftime("%Y-%m-%d %H:%M:%S"),
             "interval":             params.get("interval", "1h"),
@@ -86,6 +87,12 @@ def _make_bt_dir(params: dict) -> str:
             "partial_tp_enabled":   ptp.get("enabled",             True),
             "partial_tp_r_mult":    ptp.get("tp1_r_mult",          0.75),
             "partial_tp_close_pct": ptp.get("close_pct",           0.50),
+            "mtf_enabled":            mtf.get("enabled",           True),
+            "htf_long_min":           mtf.get("htf_long_min",      55.0),
+            "htf_short_max":          mtf.get("htf_short_max",     45.0),
+            "htf_interval":           mtf.get("htf_interval",      "1h"),
+            "risk_per_trade_pct":     risk.get("risk_per_trade_pct", 1.0)
+            "min_hold_minutes":       risk.get("min_hold_minutes",   30),
         }
         snap_path = os.path.join(path, "config_snapshot.json")
         with open(snap_path, "w", encoding="utf-8") as f:
